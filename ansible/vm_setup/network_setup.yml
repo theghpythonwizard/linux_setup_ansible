@@ -1,0 +1,12 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+     eth0:
+      addresses:
+        - 10.60.2.221/24
+      gateway4: 10.60.2.1
+      nameservers:
+          addresses: [8.8.8.8, 8.8.4.4]
+
+# Do this via the command line or ansible at some point

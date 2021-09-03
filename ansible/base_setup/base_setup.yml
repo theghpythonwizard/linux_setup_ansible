@@ -1,0 +1,52 @@
+---
+ - hosts: api-env
+   gather_facts: false
+   tasks:
+      - name: set ip address
+        set_fact:
+          ansible_host: "{{ ipv4_address }}"
+
+      - name: check if /etc/sudoers.d/init-users exists
+        stat:
+          path: /etc/sudoers.d/init-users
+        register: init_users_exists
+
+      - name: create /etc/sudoers.d/init-users if not exists
+        become: yes
+        become_user: root
+        file:
+          path: /etc/sudoers.d/init-users
+          state: touch
+          mode: '0644'
+        when: init_users_exists.stat.exists == false
+
+      - name: get contents of /etc/sudoers.d/init-users
+        become: yes
+        shell: cat /etc/sudoers.d/init-users
+        register: sudoers_file_content
+
+      - name: print content of /etc/sudoers.d/init-users
+        debug:
+          var: sudoers_file_content
+
+      - name: set sudo user
+        become: yes
+        become_user: root
+        shell: echo "jasschul ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/init-users
+        when: '"jasschul" not in sudoers_file_content.stdout or sudoers_file_content is not defined'
+
+      - name: chown /home/jasschul to bypass sudo
+        file: 
+          path: /home/jasschul
+          owner: jasschul
+          group: jasschul
+        become: yes
+
+      - name: update and install packages
+        become: yes
+        apt:
+          pkg:
+            - git
+            - curl
+          update_cache: yes
+        

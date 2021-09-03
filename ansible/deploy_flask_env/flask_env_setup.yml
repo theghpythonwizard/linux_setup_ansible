@@ -6,7 +6,7 @@
       - name: set ip address
         set_fact:
           ansible_host: "{{ ipv4_address }}"
-          
+
       - name: get installed python3 version
         shell: python3 --version
         register: python_version_output
@@ -52,7 +52,7 @@
         loop:
           - Flask==2.0.1
           - Flask-RESTful==0.3.9
-          - tox
+          - tox==3.24.3
 
       - name: activate python3 venv
         shell: cd /home/jasschul/ && . maccloudapi-venv/bin/activate && python --version && pip install -r /home/jasschul/requirements.txt

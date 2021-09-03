@@ -1,0 +1,53 @@
+---
+ - hosts: api-env
+   gather_facts: false
+   tasks:
+      - name: get installed python3 version
+        shell: python3 --version
+        register: python_version_output
+
+      - name: set python3 version as variable
+        set_fact: 
+          python_version: "{{ python_version_output.stdout.split()[1].split('.')[0:2] | join('.') }}"
+
+      - name: set python venv version
+        set_fact:
+          python_venv_version: "python{{ python_version }}-venv"
+        
+      - name: print python verson
+        debug:
+          msg: "{{ python_venv_version }}"
+
+      - name: upgrade
+        apt:
+          pkg:
+            - "{{ python_venv_version }}"
+          update_cache: yes
+        become: yes
+      
+      - name: check if maccloudapi-venv exists
+        stat:
+          path: /home/jasschul/maccloudapi-venv
+        register: maccloudapi_venv_exists
+
+      - name: create python3 venv
+        shell: "python3.8 -m venv maccloudapi-venv"
+        when: maccloudapi_venv_exists.stat.exists == false
+
+      - name: create requirements.txt
+        file:
+          path: /home/jasschul/requirements.txt
+          state: touch
+          mode: '0755'
+
+      - name: add requirements to requirements.txt
+        lineinfile:
+          path: /home/jasschul/requirements.txt
+          line: "{{ item }}"
+        loop:
+          - Flask==2.0.1
+          - Flask-RESTful==0.3.9
+          - tox
+
+      - name: activate python3 venv
+        shell: cd /home/jasschul/ && . maccloudapi-venv/bin/activate && python --version && pip install -r /home/jasschul/requirements.txt

@@ -1,2 +1,4 @@
+# use above 10.60.2.220 for static reservations.
+
 [api-env]
-dotnetcore ip_address=10.60.2.203
+devcore01 ipv4_address=10.60.2.221

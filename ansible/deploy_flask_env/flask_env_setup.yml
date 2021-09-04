@@ -2,11 +2,6 @@
  - hosts: api-env
    gather_facts: false
    tasks:
-
-      - name: set ip address
-        set_fact:
-          ansible_host: "{{ ipv4_address }}"
-
       - name: get installed python3 version
         shell: python3 --version
         register: python_version_output

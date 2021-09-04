@@ -24,3 +24,7 @@ pre-req:
 
 - move all of this to docker
 
+## Running Playbook
+
+- `ansible-playbook deploy_flask_env/flask_env_setup.yml -i development_servers/hosts --extra-vars ansible_sudo_pass='<password>'`
+

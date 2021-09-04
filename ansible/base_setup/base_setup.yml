@@ -1,6 +1,6 @@
 ---
  - hosts: api-env
-   gather_facts: false
+   gather_facts: true
    tasks:
       - name: set ip address
         set_fact:
@@ -48,5 +48,43 @@
           pkg:
             - git
             - curl
+            - wget
+            - apt-transport-https
+            - software-properties-common
           update_cache: yes
+
+      - name: download Microsoft repository GPG keys
+        shell: "wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb"
+
+      - name: Register the Microsoft repository GPG keys
+        become: yes
+        shell: "dpkg -i /tmp/packages-microsoft-prod.deb"
+
+      - name: update repository and install dependencies
+        become: yes
+        shell: |
+          apt update
+          apt install powershell -y
+
+      - name: set platform variable
+        shell: "uname -r"
+        register: platform
+        delegate_to: localhost
+        
+      - name: print platform
+        debug:
+          var: platform
+        delegate_to: localhost
+
+      - name: set dns name on localhost if wsl
+        shell: echo "{{ ipv4_address }} {{ inventory_hostname }}" >> /mnt/c/windows/system32/drivers/etc/hosts
+        when: '"WSL" in platform.stdout'
+        delegate_to: localhost
+
+      - name: set dns name on localhost if not wsl
+        shell: echo "{{ ipv4_address }} {{ inventory_hostname }}" >> /etc/hosts
+        when: '"WSL" not in platform.stdout'
+        delegate_to: localhost
+
+
         

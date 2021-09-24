@@ -1,19 +1,20 @@
 ---
- - hosts: api-env
-   gather_facts: true
+ - hosts: all
+   gather_facts: false
    tasks:
       - name: set ip address
         set_fact:
           ansible_host: "{{ ipv4_address }}"
+        delegate_to: localhost
+
+      - name: print ansible_host
+        debug:
+          msg: "{{ ansible_host }}"
       
       - name: set _upgrade if not already set
         set_fact:
           _upgrade: 'false'
         when: '_upgrade is not defined'
-
-      - name: set _upgrade to true
-        debug:
-          msg: "{{ _upgrade }}"
 
       - name: check if /etc/sudoers.d/init-users exists
         stat:
@@ -89,17 +90,42 @@
         
       - name: print platform
         debug:
-          var: platform
+          var: platform.stdout
         delegate_to: localhost
 
-      - name: set dns name on localhost if wsl
+      - name: check hosts file for entry in wsl
+        block:
+          - name: check hosts file for entry
+            shell: "cat /mnt/c/windows/system32/drivers/etc/hosts | grep '{{ ansible_host }}'"
+            register: hosts_file_contents
+            when: '"WSL" in platform.stdout'
+            delegate_to: localhost
+            ignore_errors: true
+        rescue:
+          - name: check hosts file for entry
+            shell: "cat /etc/hosts | grep '{{ ansible_host }}'"
+            register: hosts_file_contents
+            when: '"WSL" not in platform.stdout'
+            delegate_to: localhost
+            ignore_errors: true
+        rescue:
+          - name: print message if host not found
+            debug:
+              msg: "{{ ansible_host }} not found in /mnt/c/windows/system32/drivers/etc/hosts"
+            delegate_to: localhost
+
+      - name: set dns name on localhost if wsl and not already set
         shell: echo "{{ ipv4_address }} {{ inventory_hostname }}" >> /mnt/c/windows/system32/drivers/etc/hosts
-        when: '"WSL" in platform.stdout'
+        when: 
+          - '"WSL" in platform.stdout'
+          - hosts_file_contents is not defined or ansible_host not in hosts_file_contents.stdout
         delegate_to: localhost
 
-      - name: set dns name on localhost if not wsl
+      - name: set dns name on localhost if not wsl and not already set
         shell: echo "{{ ipv4_address }} {{ inventory_hostname }}" >> /etc/hosts
-        when: '"WSL" not in platform.stdout'
+        when: 
+          - '"WSL" not in platform.stdout'
+          - hosts_file_contents is not defined or ansible_host not in hosts_file_contents.stdout
         delegate_to: localhost
 
 

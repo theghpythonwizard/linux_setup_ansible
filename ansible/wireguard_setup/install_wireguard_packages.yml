@@ -1,0 +1,54 @@
+---
+ - hosts: wireguard
+   gather_facts: false
+   tasks:
+      - name: Install packages
+        become: yes
+        apt:
+          pkg:
+            - wireguard
+
+      - name: add wireguard module
+        become: yes
+        modprobe:
+          name: wireguard
+
+      - name: update net.ipv4.ip_forward in /etc/sysctl.conf
+        become: yes
+        replace:
+          path: /etc/sysctl.conf
+          regexp: '^#net.ipv4.ip_forward=1'
+          replace: net.ipv4.ip_forward=1
+
+      - name: update net.ipv6.conf.all.forwarding in /etc/sysctl.conf
+        become: yes
+        replace:
+          path: /etc/sysctl.conf
+          regexp: '^#net.ipv6.conf.all.forwarding=1'
+          replace: net.ipv6.conf.all.forwarding=1
+
+      - name: check forwarding is enabled
+        become: yes
+        shell: "sysctl -p"
+        register: sysctl_result
+
+      - name: print output
+        debug:
+          var: sysctl_result.stdout_lines
+
+      - name: generate private key
+        become: yes
+        shell: |
+          wg genkey | sudo tee /etc/wireguard/private.key
+
+      - name: generate public key
+        become: yes
+        shell: cat /etc/wireguard/private.key | wg pubkey | sudo tee /etc/wireguard/public.key
+
+      - name: setup wg0 network
+        become: yes
+        shell: |
+          ip link add dev wg0 type wireguard
+          ip addr add 172.16.200.21/24 dev wg0
+          wg set wg0 private-key private.key listen-port 51820
+          ip link set wg0 up

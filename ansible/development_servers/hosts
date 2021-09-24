@@ -2,3 +2,6 @@
 
 [api-env]
 devcore01 ipv4_address=10.60.2.221
+
+[wireguard]
+wireguard01 ipv4_address=10.60.2.222
